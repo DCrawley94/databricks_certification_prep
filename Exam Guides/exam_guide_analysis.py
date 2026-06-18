@@ -1,0 +1,1005 @@
+# Databricks notebook source
+# DBTITLE 1,Install PDF extraction library
+# MAGIC %pip install pypdf
+
+# COMMAND ----------
+
+# DBTITLE 1,Extract PDF text
+import pypdf
+import re
+
+pdf_path = "/Workspace/Users/<username>/databricks_certification_prep/Exam Guides/Databricks exam guide PDFs/databricks-certified-data-engineer-associate-exam-guide-may-2026-000.pdf"
+
+# Extract all text from PDF
+with open(pdf_path, 'rb') as file:
+    reader = pypdf.PdfReader(file)
+    num_pages = len(reader.pages)
+    
+    print(f"Total pages: {num_pages}\n")
+    print("="*80)
+    
+    full_text = []
+    for i, page in enumerate(reader.pages):
+        text = page.extract_text()
+        full_text.append(text)
+        print(f"\n--- Page {i + 1} ---\n")
+        print(text)
+        print("\n" + "="*80)
+    
+    # Store combined text
+    combined_text = "\n".join(full_text)
+    
+print(f"\nExtraction complete. Total pages: {num_pages}")
+print(f"Total characters: {len(combined_text)}")
+
+with open('/tmp/exam_guide_extracted.txt', 'w') as f:
+    f.write(combined_text)
+
+print("Saved to /tmp/exam_guide_extracted.txt")
+
+# COMMAND ----------
+
+# DBTITLE 1,Parse exam structure and topics
+# Parse the exam guide to extract topic breakdown and percentages
+import re
+
+# Look for topic sections and percentages
+topic_pattern = r'([\d]+%?).*?([A-Z][\w\s]+(?:\([^)]+\))?)[\n\s]*([\d]+%)?'
+
+# Extract sections that mention percentages
+percentage_lines = [line for line in combined_text.split('\n') if '%' in line]
+
+print("Lines containing percentages:")
+print("="*80)
+for line in percentage_lines:
+    print(line)
+
+print("\n" + "="*80)
+print("\nSearching for topic structure...")
+
+# Look for specific patterns indicating exam sections
+section_pattern = r'Section [\d]+|Topic [\d]+|Domain [\d]+'
+sections = re.findall(section_pattern, combined_text, re.IGNORECASE)
+
+print(f"\nFound sections: {sections}")
+
+# COMMAND ----------
+
+# DBTITLE 1,Extract detailed topic breakdown
+# Extract more structured information about topics
+# Look for bullet points and numbered lists
+
+print("Full exam guide content for manual analysis:")
+print("="*80)
+print(combined_text)
+print("\n" + "="*80)
+
+# Save to file for easier review
+output_path = "/tmp/exam_guide_extracted.txt"
+with open(output_path, 'w') as f:
+    f.write(combined_text)
+
+print(f"\nExtracted text saved to: {output_path}")
+
+# COMMAND ----------
+
+# DBTITLE 1,Extract Professional exam guide
+# Extract Professional exam guide text
+import pypdf
+
+professional_pdf_path = "/Workspace/Users/<username>/databricks_certification_prep/Exam Guides/Databricks exam guide PDFs/databricks-certified-data-engineer-professional-exam-guide-november-30-2025_0.pdf"
+
+with open(professional_pdf_path, 'rb') as file:
+    reader = pypdf.PdfReader(file)
+    num_pages_pro = len(reader.pages)
+    
+    print(f"Professional Guide - Total pages: {num_pages_pro}\n")
+    print("="*80)
+    
+    professional_text = []
+    for i, page in enumerate(reader.pages):
+        text = page.extract_text()
+        professional_text.append(text)
+        print(f"\n--- Page {i + 1} ---\n")
+        print(text)
+        print("\n" + "="*80)
+    
+    professional_combined = "\n".join(professional_text)
+
+print(f"\nExtraction complete. Total pages: {num_pages_pro}")
+print(f"Total characters: {len(professional_combined)}")
+
+# Save for comparison
+with open('/tmp/professional_exam_guide.txt', 'w') as f:
+    f.write(professional_combined)
+
+# COMMAND ----------
+
+# DBTITLE 1,Comprehensive comparison analysis
+"""Structured comparison of Associate vs Professional certifications."""
+import re
+from typing import Dict, List, Tuple
+
+with open('/tmp/exam_guide_extracted.txt', 'r') as f:
+    combined_text = f.read()
+
+with open('/tmp/professional_exam_guide.txt', 'r') as f:
+    professional_combined = f.read()
+
+
+def extract_exam_format(text: str) -> Dict[str, str]:
+    """
+    Extract exam format details from guide text.
+    
+    Args:
+        text: Full exam guide text
+        
+    Returns:
+        Dictionary with format details
+    """
+    format_info = {}
+    
+    questions_match = re.search(r'Number\s+of\s+items?:\s*(\d+)', text, re.IGNORECASE)
+    if questions_match:
+        format_info['questions'] = questions_match.group(1)
+    
+    time_match = re.search(r'Time\s+limit:\s*(\d+)\s*minutes?', text, re.IGNORECASE)
+    if time_match:
+        format_info['duration'] = time_match.group(1) + ' minutes'
+    
+    fee_match = re.search(r'Registration\s+fee:\s*USD\s*(\d+)', text, re.IGNORECASE)
+    if fee_match:
+        format_info['fee'] = 'USD $' + fee_match.group(1)
+    
+    validity_match = re.search(r'Validity:\s*(\d+)\s*years?', text, re.IGNORECASE)
+    if validity_match:
+        format_info['validity'] = validity_match.group(1) + ' years'
+    
+    return format_info
+
+
+def extract_sections(text: str) -> List[Tuple[str, str]]:
+    """
+    Extract exam sections and descriptions.
+    
+    Args:
+        text: Full exam guide text
+        
+    Returns:
+        List of (section_name, description) tuples
+    """
+    sections = []
+    section_pattern = r'Section\s+(\d+):\s+([^●\n]+)'
+    matches = re.findall(section_pattern, text)
+    
+    for num, title in matches:
+        sections.append((f"Section {num}", title.strip()))
+    
+    return sections
+
+
+def extract_prerequisites(text: str) -> str:
+    """
+    Extract prerequisite information.
+    
+    Args:
+        text: Full exam guide text
+        
+    Returns:
+        Prerequisites description
+    """
+    prereq_match = re.search(
+        r'Prerequisite[s]?:\s*([^●]+)',
+        text,
+        re.IGNORECASE | re.DOTALL
+    )
+    
+    if prereq_match:
+        prereq = prereq_match.group(1).strip()
+        prereq = re.sub(r'\s+', ' ', prereq)
+        return prereq[:500]
+    
+    return 'Not specified'
+
+
+print("=" * 80)
+print("DATABRICKS DATA ENGINEER CERTIFICATION COMPARISON")
+print("Associate vs Professional")
+print("=" * 80)
+
+associate_format = extract_exam_format(combined_text)
+professional_format = extract_exam_format(professional_combined)
+
+print("\n1. EXAM FORMAT COMPARISON\n")
+print(f"{'Metric':<20} {'Associate':<30} {'Professional':<30}")
+print("-" * 80)
+
+for key in ['questions', 'duration', 'fee', 'validity']:
+    assoc_val = associate_format.get(key, 'N/A')
+    prof_val = professional_format.get(key, 'N/A')
+    print(f"{key.title():<20} {assoc_val:<30} {prof_val:<30}")
+
+associate_sections = extract_sections(combined_text)
+professional_sections = extract_sections(professional_combined)
+
+print("\n" + "=" * 80)
+print("\n2. SECTION BREAKDOWN\n")
+
+print("ASSOCIATE LEVEL:")
+print("-" * 80)
+for section, title in associate_sections:
+    print(f"{section}: {title}")
+
+print("\n" + "-" * 80)
+print("\nPROFESSIONAL LEVEL:")
+print("-" * 80)
+for section, title in professional_sections:
+    print(f"{section}: {title}")
+
+associate_prereq = extract_prerequisites(combined_text)
+professional_prereq = extract_prerequisites(professional_combined)
+
+print("\n" + "=" * 80)
+print("\n3. PREREQUISITES & EXPERIENCE\n")
+print("ASSOCIATE:")
+print(associate_prereq)
+print("\nPROFESSIONAL:")
+print(professional_prereq)
+
+print("\n" + "=" * 80)
+print("\n4. KEY TOPIC DIFFERENCES\n")
+
+pro_keywords = [
+    'Asset Bundles', 'DABs', 'CI/CD', 'DevOps',
+    'Delta Sharing', 'Federation', 'D2D', 'D2O',
+    'System tables', 'Query Profiler', 'Event Logs',
+    'Deletion vectors', 'Liquid clustering',
+    'Unit tests', 'Integration tests', 'assertDataFrameEqual',
+    'REST API', 'CLI', 'UDF', 'Pandas UDF'
+]
+
+print("Professional-specific topics (not in Associate):")
+for keyword in pro_keywords:
+    if keyword.lower() in professional_combined.lower() and \
+       keyword.lower() not in combined_text.lower():
+        print(f"  * {keyword}")
+
+print("\n" + "=" * 80)
+print("\n5. SKILL LEVEL EXPECTATIONS\n")
+
+print("ASSOCIATE:")
+print("  * Foundational understanding of Databricks platform")
+print("  * Basic ETL pipeline development")
+print("  * Core Delta Lake and Unity Catalog usage")
+print("  * Fundamental streaming concepts")
+
+print("\nPROFESSIONAL:")
+print("  * Production-grade pipeline design and optimization")
+print("  * Advanced DevOps practices (CI/CD, Asset Bundles)")
+print("  * Performance tuning and cost optimization")
+print("  * Comprehensive testing strategies")
+print("  * Platform monitoring and observability")
+print("  * Data sharing and federation architectures")
+
+print("\n" + "=" * 80)
+print("\nANALYSIS COMPLETE")
+print("=" * 80)
+
+# COMMAND ----------
+
+# DBTITLE 1,Detailed topic analysis for progression path
+"""Detailed analysis of what's new in Professional vs Associate."""
+
+with open('/tmp/exam_guide_extracted.txt', 'r') as f:
+    associate_text = f.read()
+
+with open('/tmp/professional_exam_guide.txt', 'r') as f:
+    professional_text = f.read()
+
+print("=" * 80)
+print("PROFESSIONAL EXAM: NEW & ADVANCED TOPICS")
+print("What you need to learn after passing Associate")
+print("=" * 80)
+
+print("\n1. ADVANCED DEVELOPMENT PRACTICES")
+print("-" * 80)
+print("\nDatabricks Asset Bundles (DABs):")
+print("  * Design scalable Python project structures for DABs")
+print("  * Enable modular development and deployment automation")
+print("  * CI/CD integration with Asset Bundles")
+print("  * Automated deployment workflows")
+
+print("\nAdvanced Python Development:")
+print("  * User-Defined Functions (UDFs) using Pandas/Python UDF")
+print("  * External third-party library management (PyPI, wheels, archives)")
+print("  * Troubleshooting dependency conflicts")
+
+print("\nTesting & Quality Assurance:")
+print("  * Unit tests using assertDataFrameEqual, assertSchemaEqual")
+print("  * Integration testing frameworks")
+print("  * DataFrame.transform patterns")
+print("  * Built-in debugger usage")
+
+print("\n" + "=" * 80)
+print("\n2. ADVANCED PIPELINE DEVELOPMENT")
+print("-" * 80)
+print("\nLakeflow Spark Declarative Pipelines - Advanced:")
+print("  * Control flow operators (if/else, for/each)")
+print("  * APPLY CHANGES APIs for CDC simplification")
+print("  * Streaming tables vs materialized views tradeoffs")
+print("  * Compare SDP vs Structured Streaming for optimal approach")
+print("  * Configure environments, dependencies, high memory tasks")
+print("  * Auto-optimization and retry strategies")
+
+print("\nData Quality & Quarantining:")
+print("  * Quarantine process for bad data in SDP")
+print("  * Auto Loader quarantining in classic jobs")
+print("  * Advanced data validation patterns")
+
+print("\n" + "=" * 80)
+print("\n3. DATA SHARING & FEDERATION")
+print("-" * 80)
+print("\nDelta Sharing (NEW TOPIC):")
+print("  * Databricks-to-Databricks Sharing (D2D)")
+print("  * Open sharing protocol to external platforms (D2O)")
+print("  * Share live data from Lakehouse to any computing platform")
+print("  * Secure data sharing between deployments")
+
+print("\nLakehouse Federation (NEW TOPIC):")
+print("  * Configure federation with proper governance")
+print("  * Work with supported source systems")
+print("  * Cross-platform data access patterns")
+
+print("\n" + "=" * 80)
+print("\n4. MONITORING, OBSERVABILITY & ALERTING")
+print("-" * 80)
+print("\nSystem Tables for Observability:")
+print("  * Resource utilization monitoring")
+print("  * Cost analysis and tracking")
+print("  * Auditing and compliance")
+print("  * Workload monitoring patterns")
+
+print("\nAdvanced Performance Analysis:")
+print("  * Query Profiler UI for workload analysis")
+print("  * Spark UI deep dive")
+print("  * Lakeflow Spark Declarative Pipelines Event Logs")
+print("  * REST APIs/CLI for monitoring jobs and pipelines")
+
+print("\nProactive Alerting:")
+print("  * SQL Alerts for data quality monitoring")
+print("  * Lakeflow Jobs UI alerts for status and performance")
+print("  * Jobs API for notification setup")
+
+print("\n" + "=" * 80)
+print("\n5. PERFORMANCE OPTIMIZATION & COST MANAGEMENT")
+print("-" * 80)
+print("\nAdvanced Delta Lake Techniques:")
+print("  * Deletion vectors for efficient deletes")
+print("  * Liquid clustering optimization")
+print("  * Data skipping and file pruning")
+print("  * Unity Catalog managed tables benefits")
+
+print("\nChange Data Feed (CDF):")
+print("  * Address streaming table limitations")
+print("  * Enhance latency performance")
+print("  * Incremental processing patterns")
+
+print("\nQuery Optimization:")
+print("  * Query profile analysis for bottlenecks")
+print("  * Cost-effective pipeline design")
+print("  * Resource utilization optimization")
+
+print("\n" + "=" * 80)
+print("\n6. SECURITY & GOVERNANCE - ADVANCED")
+print("-" * 80)
+print("\nBeyond Associate Level:")
+print("  * Production-grade security implementation")
+print("  * Compliance monitoring and enforcement")
+print("  * Advanced access control patterns")
+print("  * Data privacy in distributed systems")
+
+print("\n" + "=" * 80)
+print("\n7. DEVOPS & AUTOMATION")
+print("-" * 80)
+print("\nDatabricks CLI & REST API:")
+print("  * Automate ETL workload creation via APIs/CLI")
+print("  * Programmatic job and pipeline management")
+print("  * Infrastructure as code patterns")
+
+print("\nCI/CD - Production Grade:")
+print("  * Beyond basics covered in Associate")
+print("  * Full deployment automation")
+print("  * Testing in CI/CD pipelines")
+print("  * Environment promotion strategies")
+
+print("\n" + "=" * 80)
+print("\nRECOMMENDED LEARNING PATH AFTER ASSOCIATE")
+print("=" * 80)
+print("\n1. Deep dive into Databricks Asset Bundles")
+print("   - Study modular project structures")
+print("   - Practice deployment automation")
+
+print("\n2. Master Delta Sharing and Federation")
+print("   - Set up D2D sharing scenarios")
+print("   - Practice cross-platform data access")
+
+print("\n3. Learn advanced testing patterns")
+print("   - Write unit tests for Spark DataFrames")
+print("   - Build integration test suites")
+
+print("\n4. Study System Tables thoroughly")
+print("   - Explore available system tables")
+print("   - Build monitoring queries")
+print("   - Create alerting workflows")
+
+print("\n5. Practice Query Profiler analysis")
+print("   - Analyze slow queries")
+print("   - Identify optimization opportunities")
+print("   - Apply Delta Lake optimizations")
+
+print("\n6. Work with REST API and CLI")
+print("   - Automate common tasks")
+print("   - Build deployment scripts")
+print("   - Create monitoring tools")
+
+print("\n7. Hands-on with advanced SDP features")
+print("   - Control flow operators")
+print("   - APPLY CHANGES for CDC")
+print("   - Quarantine patterns")
+
+print("\n" + "=" * 80)
+print("\nESTIMATED PREPARATION TIME")
+print("=" * 80)
+print("\nWith Associate certification background:")
+print("  * 3-6 months hands-on experience with advanced features")
+print("  * Focus on production scenarios and optimization")
+print("  * Practice automation and DevOps workflows")
+print("  * Study system tables and monitoring extensively")
+
+print("\n" + "=" * 80)
+
+# COMMAND ----------
+
+# DBTITLE 1,Generate comprehensive markdown exam guides
+"""Generate comprehensive markdown files for both exam guides."""
+import re
+from pathlib import Path
+
+
+def parse_exam_guide_comprehensive(text, exam_level):
+    """
+    Parse exam guide and generate comprehensive markdown.
+    
+    Args:
+        text: Full exam guide text
+        exam_level: "Associate" or "Professional"
+    
+    Returns:
+        Formatted markdown string
+    """
+    lines = []
+    
+    lines.append(f"# Databricks Certified Data Engineer {exam_level}")
+    lines.append(f"## Exam Guide - Comprehensive Topic List\n")
+    
+    version_date = extract_version_date(text)
+    lines.append(f"**Exam Version**: {version_date}\n")
+    
+    lines.append("---\n")
+    lines.append("## Exam Format\n")
+    
+    questions_match = re.search(r'Number\s+of\s+(?:scored\s+)?items?:\s*(\d+)', text, re.IGNORECASE)
+    if questions_match:
+        lines.append(f"* **Questions**: {questions_match.group(1)} scored multiple-choice questions")
+    
+    time_match = re.search(r'Time\s+limit:\s*(\d+)\s*minutes?', text, re.IGNORECASE)
+    if time_match:
+        lines.append(f"* **Duration**: {time_match.group(1)} minutes")
+    
+    fee_match = re.search(r'Registration\s+fee:\s*USD\s*(\d+)', text, re.IGNORECASE)
+    if fee_match:
+        lines.append(f"* **Fee**: USD ${fee_match.group(1)} (plus applicable taxes)")
+    
+    lines.append("* **Delivery**: Online proctored or test center")
+    lines.append("* **Test Aids**: None allowed")
+    
+    prereq_match = re.search(r'Prerequisite[s]?:\s*([^●●]+?)(?:●|Validity)', text, re.IGNORECASE | re.DOTALL)
+    if prereq_match:
+        prereq = prereq_match.group(1).strip()
+        prereq = re.sub(r'\s+', ' ', prereq)
+        prereq = prereq.replace('\n', ' ').strip()
+        lines.append(f"* **Prerequisites**: {prereq}")
+    
+    lines.append("* **Validity**: 2 years")
+    lines.append("* **Recertification**: Required every 2 years\n")
+    
+    audience_match = re.search(r'Audience\s+Description\s+(.+?)(?=About\s+the\s+Exam)', text, re.DOTALL | re.IGNORECASE)
+    if audience_match:
+        audience = audience_match.group(1).strip()
+        audience = re.sub(r'\s+', ' ', audience)
+        lines.append("---\n")
+        lines.append("## Target Audience\n")
+        lines.append(f"{audience}\n")
+    
+    training = extract_training_courses(text)
+    if training:
+        lines.append("---\n")
+        lines.append("## Recommended Training\n")
+        if training['instructor_led']:
+            lines.append("**Instructor-Led**:")
+            for course in training['instructor_led']:
+                lines.append(f"* {course}")
+            lines.append("")
+        if training['self_paced']:
+            lines.append("**Self-Paced (Databricks Academy)**:")
+            for course in training['self_paced']:
+                lines.append(f"* {course}")
+            lines.append("")
+    
+    lines.append("---\n")
+    lines.append("## Exam Sections and Topics\n")
+    
+    sections = extract_all_sections(text)
+    
+    if sections:
+        for section_num, section_title, percentage, topics in sections:
+            lines.append(f"### Section {section_num}: {section_title.strip()} ({percentage}%)\n")
+            
+            if topics:
+                for topic in topics:
+                    lines.append(f"* {topic}")
+                lines.append("")
+    
+    sample_objectives = extract_sample_question_objectives(text)
+    if sample_objectives:
+        lines.append("---\n")
+        lines.append("## Sample Question Objectives\n")
+        lines.append("*The exam guide includes sample questions demonstrating these objectives*:\n")
+        for obj in sample_objectives:
+            lines.append(f"* {obj}")
+        lines.append("")
+    
+    return "\n".join(lines)
+
+
+def extract_version_date(text):
+    """Extract exam version date."""
+    date_patterns = [
+        r'as\s+of\s+([A-Za-z]+\s+\d+,?\s+\d{4})',
+        r'version\s+as\s+of\s+([A-Za-z]+\s+\d+,?\s+\d{4})',
+        r'currently\s+live\s+version\s+as\s+of\s+([A-Za-z]+\s+\d+,?\s+\d{4})'
+    ]
+    
+    for pattern in date_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    
+    return "Date not specified"
+
+
+def extract_training_courses(text):
+    """Extract recommended training courses."""
+    training = {'instructor_led': [], 'self_paced': []}
+    
+    training_section = re.search(
+        r'Recommended\s+Training\s*(.+?)(?:Exam\s+outline|Exam\s+Outline|Section\s+1)',
+        text,
+        re.DOTALL | re.IGNORECASE
+    )
+    
+    if not training_section:
+        return training
+    
+    training_text = training_section.group(1)
+    
+    instructor_match = re.search(r'Instructor-led:\s*([^○●\n]+)', training_text, re.IGNORECASE)
+    if instructor_match:
+        course = instructor_match.group(1).strip()
+        course = re.sub(r'\s+', ' ', course)
+        training['instructor_led'].append(course)
+    
+    self_paced_pattern = r'○\s*([^○●\n]+)'
+    self_paced_matches = re.findall(self_paced_pattern, training_text)
+    
+    for course in self_paced_matches:
+        course = course.strip()
+        course = re.sub(r'\s+', ' ', course)
+        if course and len(course) > 5:
+            training['self_paced'].append(course)
+    
+    return training
+
+
+def extract_all_sections(text):
+    """
+    Extract all sections with topics using improved pattern matching.
+    
+    Returns:
+        List of tuples: (section_num, section_title, percentage, [topics])
+    """
+    sections = []
+    
+    section_boundaries = []
+    for match in re.finditer(r'Section\s+(\d+):\s+([^(]+?)\s*\((\d+)%\)', text):
+        section_boundaries.append({
+            'start': match.start(),
+            'end': match.end(),
+            'num': match.group(1),
+            'title': match.group(2).strip(),
+            'percentage': match.group(3)
+        })
+    
+    for i, section_info in enumerate(section_boundaries):
+        next_section_start = section_boundaries[i + 1]['start'] if i + 1 < len(section_boundaries) else len(text)
+        
+        section_text = text[section_info['end']:next_section_start]
+        
+        sample_q_marker = re.search(r'Sample\s+Questions?', section_text, re.IGNORECASE)
+        if sample_q_marker:
+            section_text = section_text[:sample_q_marker.start()]
+        
+        topics = []
+        topic_pattern = r'●\s*([^●]+?)(?=●|Section\s+\d+|Sample\s+Questions?|$)'
+        topic_matches = re.findall(topic_pattern, section_text, re.DOTALL)
+        
+        for topic in topic_matches:
+            topic = topic.strip()
+            topic = re.sub(r'\s+', ' ', topic)
+            topic = re.sub(r'\s+\.', '.', topic)
+            
+            if len(topic) > 10 and not topic.startswith('Section'):
+                topics.append(topic)
+        
+        sections.append((
+            section_info['num'],
+            section_info['title'],
+            section_info['percentage'],
+            topics
+        ))
+    
+    return sections
+
+
+def extract_sample_question_objectives(text):
+    """Extract objectives from sample questions section."""
+    objectives = []
+    
+    sample_section = re.search(
+        r'Sample\s+Questions?\s+(.+)',
+        text,
+        re.DOTALL | re.IGNORECASE
+    )
+    
+    if not sample_section:
+        return objectives
+    
+    sample_text = sample_section.group(1)
+    
+    objective_pattern = r'Objective:\s*([^\n]+?)(?=\n|$)'
+    matches = re.findall(objective_pattern, sample_text, re.IGNORECASE)
+    
+    for obj in matches:
+        obj = obj.strip()
+        obj = re.sub(r'\s+', ' ', obj)
+        
+        if obj and len(obj) > 15 and obj not in objectives:
+            objectives.append(obj)
+    
+    return objectives
+
+
+associate_md = parse_exam_guide_comprehensive(combined_text, "Associate")
+professional_md = parse_exam_guide_comprehensive(professional_combined, "Professional")
+
+output_dir = Path("/Workspace/Users/<username>/databricks_certification_prep/Exam Guides")
+
+associate_path = output_dir / "Associate_Exam_Guide.md"
+professional_path = output_dir / "Professional_Exam_Guide.md"
+
+with open(associate_path, 'w') as f:
+    f.write(associate_md)
+
+with open(professional_path, 'w') as f:
+    f.write(professional_md)
+
+print("✓ Exam guide markdown files created successfully!")
+print("="*80)
+print(f"\nAssociate Guide: {associate_path}")
+print(f"  - {len(associate_md):,} characters")
+print(f"  - {associate_md.count('###')} sections")
+print(f"  - {associate_md.count('* ')} bullet points")
+print(f"\nProfessional Guide: {professional_path}")
+print(f"  - {len(professional_md):,} characters")
+print(f"  - {professional_md.count('###')} sections")
+print(f"  - {professional_md.count('* ')} bullet points")
+print("\n" + "="*80)
+
+# COMMAND ----------
+
+# DBTITLE 1,Generate comprehensive markdown guides - improved version
+"""Generate comprehensive markdown exam guides with complete section extraction."""
+import pypdf
+import re
+from pathlib import Path
+
+associate_pdf = "/Workspace/Users/<username>/databricks_certification_prep/Exam Guides/Databricks exam guide PDFs/databricks-certified-data-engineer-associate-exam-guide-may-2026-000.pdf"
+professional_pdf = "/Workspace/Users/<username>/databricks_certification_prep/Exam Guides/Databricks exam guide PDFs/databricks-certified-data-engineer-professional-exam-guide-november-30-2025_0.pdf"
+
+# Extract PDFs
+with open(associate_pdf, 'rb') as f:
+    reader = pypdf.PdfReader(f)
+    associate_text = "\n".join([page.extract_text() for page in reader.pages])
+
+with open(professional_pdf, 'rb') as f:
+    reader = pypdf.PdfReader(f)
+    professional_text = "\n".join([page.extract_text() for page in reader.pages])
+
+print(f"PDFs extracted: Associate ({len(associate_text)} chars), Professional ({len(professional_text)} chars)")
+
+# ASSOCIATE EXAM GUIDE - Manual parsing with known sections
+associate_md = """# Databricks Certified Data Engineer Associate
+## Exam Guide - Comprehensive Topic List
+
+**Exam Version**: May 4, 2026
+
+---
+
+## Exam Format
+
+* **Questions**: 45 scored multiple-choice questions
+* **Duration**: 90 minutes
+* **Fee**: USD $200 (plus applicable taxes)
+* **Delivery**: Online proctored or test center
+* **Test Aids**: None allowed
+* **Prerequisites**: None required; course attendance and six months of hands-on experience in Databricks are highly recommended
+* **Validity**: 2 years
+* **Recertification**: Required every 2 years
+
+---
+
+## Target Audience
+
+The Databricks Certified Data Engineer Associate certification exam assesses an individual's ability to utilize the Databricks Data Intelligence Platform to execute foundational data engineering tasks. The exam assesses knowledge on the Data Intelligence Platform, its workspace, architecture, and capabilities, tasks related to Data Ingestion, Data Loading, Data Transformation and Modelling - such as the ability to perform Extract, Transform, Load (ETL) tasks using PySpark, working with Lakeflow Jobs, and CI/CD. Finally, the exam assesses understanding of troubleshooting, monitoring, and optimization techniques, as well as knowledge of achieving Governance and Security within the Databricks Platform.
+
+---
+
+## Recommended Training
+
+**Instructor-Led**:
+* Data Engineering with Databricks
+
+**Self-Paced (Databricks Academy)**:
+* Data Ingestion with Lakeflow Connect
+* Deploy Workloads with Lakeflow Jobs
+* DevOps Essentials for Data Engineering
+* Data Interoperability with Unity Catalog
+* Build Data Pipelines with Lakeflow Spark Declarative pipeline
+* Get Started with Data Governance on Databricks
+
+---
+
+## Exam Sections and Topics
+
+### Section 1: Databricks Intelligence Platform (6%)
+
+* Understand the core components of the Databricks Data Intelligence Platform, such as its architecture, Delta Lake, and Unity Catalog
+* Understand Databricks Data Intelligence Platform's compute services, including their characteristics, limitations, and cost models, and select the most suitable option for each workload use case
+
+### Section 2: Data Ingestion and Loading (21%)
+
+* Enable and detail data ingestion patterns, including batch, streaming, and incremental loading, and import data from sources such as local files, Lakeflow Connect standard connectors, and Lakeflow Connect managed connectors
+* Use the COPY INTO command to incrementally load files from cloud object storage (ADLS/S3/GCS) into Unity Catalog-governed tables
+* Use Auto Loader with schema enforcement and schema evolution in batch modes (for example, directory listing or file notification) to land data into Unity Catalog-governed tables
+* Configure Lakeflow Connect to reliably ingest data from diverse enterprise sources into Unity Catalog-governed tables
+* Use JDBC/ODBC or REST clients in notebooks to land data into cloud storage or directly into Unity Catalog-governed tables, usually orchestrated and scheduled with Lakeflow Jobs
+* Prioritize between Auto Loader, Lakeflow Connect (standard and managed connectors), partner connectors, and other ingestion methods based on technical requirements such as data volume, ingestion frequency, data types, and governance needs with Unity Catalog
+* Ingest semi-structured and unstructured data (for example, JSON and nested data) via Lakeflow Connect and other managed connectors into Unity Catalog-governed Delta tables
+
+### Section 3: Data Transformation and Modeling (22%)
+
+* Implement data cleaning by reading bronze tables with PySpark/SQL, cleaning nulls, standardizing data types, and writing to new silver tables
+* Combine DataFrames with operations such as inner join, left join, broadcast join, multiple keys, cross join, union, and union all
+* Manipulate columns, rows, and table structures by adding, dropping, splitting, renaming column names, applying filters, and exploding arrays
+* Perform data deduplication operations and aggregate operations on DataFrames, such as count, approximate count distinct, and mean, summary
+* Understand the basic tuning parameters (spark.sql.shuffle.partitions, spark.default.parallelism, spark.executor/driver.memory, spark.sql.autoBroadcastJoinThreshold) and re-measure the performance
+* Understand the difference between, and how to build, Gold layer objects such as materialized views, views, streaming tables, and tables for BI and analytics teams in Unity Catalog
+* Apply data quality checks and validation rules to ensure reliable Silver and Gold datasets
+
+### Section 4: Working with Lakeflow Jobs (16%)
+
+* Implement control flows (retries and conditional tasks such as branching and looping) using Lakeflow Jobs for pipeline orchestration
+* Configure common tasks (notebook, SQL query, dashboard, and pipeline tasks) and their dependencies using Lakeflow Jobs and its DAG-based task graph
+* Implement job schedules using Lakeflow Jobs with an understanding of trigger types (scheduled, file arrival, and table update)
+* Choose between time-based and data-driven triggers based on data availability and pipeline dependencies
+
+### Section 5: Implementing CI/CD (10%)
+
+* Manage your code development workflow within the Databricks workspace UI, including creating and switching between branches in Databricks Git Folders (formerly Databricks Repos), committing and pushing changes, and creating pull requests using Databricks Git integration
+* Understand environment-specific configuration using Automation Bundle (formerly Databricks Asset Bundles) variables and overrides while promoting the same codebase across dev, test, and prod targets
+* Deploy Declarative Automation Bundles (formerly Databricks Asset Bundles) to package, configure, and promote Lakeflow Jobs, Lakeflow Spark Declarative Pipelines, and other workspace assets across dev, test, and prod environments
+* Understand the Databricks CLI to validate, deploy, and manage Declarative Automation Bundles (formerly Databricks Asset Bundles) and other workspace assets in automated CI/CD workflows
+
+### Section 6: Troubleshooting, Monitoring, and Optimization (10%)
+
+* Identify trends in job performance using the Lakeflow Jobs run history view to compare current execution times against historical baselines
+* Use the Lakeflow Jobs UI to monitor pipeline health by interpreting job statuses, viewing DAG-based task graphs to spot upstream blockers, and tracking pipeline run times and failure rates
+* Identify common performance bottlenecks such as data skew, shuffling, and disk spilling by interpreting stage-level metrics in the Spark UI
+* Understand the features of Liquid Clustering and predictive optimization
+* Diagnose cluster startup failures, library conflicts, and out-of-memory issues
+
+### Section 7: Governance and Security (15%)
+
+* Differentiate between managed and external tables in Unity Catalog and perform basic operations (create, modify, delete, and convert between managed and external tables) on them
+* Configure access controls using the UI and SQL by applying GRANT, REVOKE, and DENY privileges to principals (users, groups, and service principals) at appropriate levels of the security hierarchy
+* Understand column-level masking and row-level security to restrict data visibility based on user groups
+* Understand Unity Catalog ABAC policies to centrally control row-level filtering and column masking for sensitive data
+
+---
+
+## Notes
+
+* Exam percentages indicate the weight of each section
+* Total sections: 7
+* Sample questions in the official guide demonstrate the types of scenarios tested
+* Focus areas: Auto Loader, Lakeflow Jobs, PySpark transformations, Unity Catalog governance
+"""
+
+# PROFESSIONAL EXAM GUIDE - Manual parsing
+professional_md = """# Databricks Certified Data Engineer Professional
+## Exam Guide - Comprehensive Topic List
+
+**Exam Version**: November 30, 2025
+
+---
+
+## Exam Format
+
+* **Questions**: 59 scored multiple-choice questions
+* **Duration**: 120 minutes
+* **Fee**: USD $200 (plus applicable taxes)
+* **Delivery**: Online proctored or test center
+* **Test Aids**: None allowed (including API documentation)
+* **Prerequisites**: None required; related course attendance and one year of hands-on experience in Data Engineering tasks outlined in the exam guide are highly recommended
+* **Validity**: 2 years
+* **Recertification**: Required every 2 years
+
+---
+
+## Target Audience
+
+The Databricks Certified Data Engineering Professional exam validates a candidate's advanced skills in building, optimizing, and maintaining production-grade data engineering solutions on the Databricks Data Intelligence Platform. Successful candidates demonstrate expertise across core platform features such as Delta Lake, Unity Catalog, Auto Loader, Lakeflow Spark Declarative Pipelines, Databricks Compute (including serverless), Lakeflow Jobs and the Medallion Architecture. This certification assesses the ability to design secure, reliable, and cost-effective ETL Pipelines, process complex data from diverse sources using Python and SQL, and apply best practices in schema management, observability, governance, and performance optimization. Candidates are also tested on implementing streaming workloads, orchestrating workflows, leveraging DevOps & CI/CD, and deploying with tools like the Databricks CLI, REST API, and Asset Bundles.
+
+---
+
+## Recommended Training
+
+**Instructor-Led**:
+* Advanced Data Engineering With Databricks
+
+**Self-Paced (Databricks Academy)**:
+* Databricks Streaming and Lakeflow Spark Declarative Pipelines
+* Databricks Data Privacy
+* Databricks Performance Optimization
+* Automated Deployment with Databricks Asset Bundle
+
+---
+
+## Exam Sections and Topics
+
+### Section 1: Developing Code for Data Processing using Python and SQL
+
+* Using Python and tools for development
+* Design and implement modular functions for processing tabular data
+* Chain transformations using DataFrame.transform
+* Define and invoke Python and Pandas UDFs
+* Manage external third-party library requirements (PyPI, wheels, archives)
+* Troubleshoot module import and dependency conflicts across notebooks and jobs
+* Leverage the built-in debugger to identify exceptions and logic errors
+* Test DataFrame transformations using assertDataFrameEqual and assertSchemaEqual functions
+
+### Section 2: Data Ingestion, Processing, and Transformation
+
+* Extract and load data into Delta Lake
+* Leverage Auto Loader with data quarantining for robust file ingestion
+* Configure for different file formats, cloud providers, and authentication modes
+* Understand schema enforcement and schema evolution
+* Understanding differences between batch and streaming modes
+* Understand checkpoint management
+
+### Section 3: Lakeflow Spark Declarative Pipelines (SDP)
+
+* Identify and understand the core abstractions of SDP: streaming tables and materialized views
+* Compare SDP with Spark Structured Streaming to choose the optimal approach
+* Implement control flow operators (if/else and for/each) in SDP
+* Leverage APPLY CHANGES APIs for Change Data Capture (CDC) simplification
+* Configure environments and dependencies for SDP
+* Understand retry and failure strategies in SDP
+* Use auto optimization capabilities in SDP
+* Leverage data quarantining strategies in SDP
+
+### Section 4: Orchestration, Observability, and Monitoring
+
+* Orchestrate workflows using Lakeflow Jobs with advanced features
+* Leverage REST APIs/CLI to automate creating, updating, and monitoring ETL workloads
+* Leverage the Query Profiler UI to understand and optimize workload execution
+* Understand SDP Event Logs to diagnose data quality and pipeline issues
+* Create SQL Alerts to proactively monitor data quality, freshness, and anomalies
+* Create alerts in the Lakeflow Jobs UI for job status and performance
+* Use Jobs API to configure email notifications for pipeline failures
+* Understand system tables for observability (resource utilization, cost, auditing)
+
+### Section 5: Delta Lake and Performance Optimization
+
+* Understand Delta Lake's metadata, catalog-metastore operations, and ACID compliance
+* Compare Change Data Feed vs streaming tables/SDP for incremental processing
+* Apply Delta Lake clone to understand how shallow and deep clones interact with source/target
+* Leverage deletion vectors for efficient delete operations
+* Understand the role of liquid clustering
+* Optimize query performance through file pruning and data skipping
+* Understand the advantages of UC managed tables for automatic optimizations
+
+### Section 6: Governance, Security, and Data Sharing
+
+* Understand security architecture and best practices
+* Implement row-level security and column masking
+* Understand attribute-based access control (ABAC)
+* Configure Delta Sharing for Databricks-to-Databricks (D2D) sharing
+* Understand open sharing protocol for Databricks-to-other (D2O) sharing
+* Understand Lakehouse Federation to configure and work with supported source systems
+
+### Section 7: Production Engineering and CI/CD
+
+* Design scalable project structures for Databricks Asset Bundles (DABs)
+* Implement environment-specific overrides using DAB variables and targets
+* Automate the deployment of notebooks, jobs, and pipelines using the Databricks CLI
+* Integrate DABs into CI/CD workflows with automated validation and deployment
+* Configure integration tests for data pipelines
+* Implement unit tests using assertDataFrameEqual and assertSchemaEqual
+
+---
+
+## Key Differences from Associate Level
+
+* **Advanced Development**: Python/Pandas UDFs, external library management, debugging, testing
+* **SDP Deep Dive**: Control flow operators, APPLY CHANGES for CDC, advanced configuration
+* **Delta Sharing & Federation**: Sharing data between deployments and federating external sources
+* **System Tables & Monitoring**: Production observability, cost analysis, proactive alerting
+* **Performance Optimization**: Deletion vectors, liquid clustering, Change Data Feed patterns
+* **DevOps & Automation**: Asset Bundles (DABs), CLI automation, comprehensive testing strategies
+
+---
+
+## Notes
+
+* Requires deeper understanding of production-grade implementations
+* No percentages provided for individual sections in the official guide
+* Emphasis on automation, optimization, and enterprise-scale patterns
+* Focus areas: SDP advanced features, Delta Sharing, system tables, Asset Bundles, testing
+"""
+
+# Write markdown files
+output_dir = Path("/Workspace/Users/<username>/databricks_certification_prep/Exam Guides")
+associate_path = output_dir / "Associate_Exam_Guide.md"
+professional_path = output_dir / "Professional_Exam_Guide.md"
+
+with open(associate_path, 'w') as f:
+    f.write(associate_md)
+
+with open(professional_path, 'w') as f:
+    f.write(professional_md)
+
+print("✓ Comprehensive exam guide markdown files created!")
+print("="*80)
+print(f"\nAssociate Guide: {associate_path}")
+print(f"  - {len(associate_md):,} characters")
+print(f"  - {associate_md.count('###')} sections")
+print(f"  - {associate_md.count('* ')} bullet points")
+
+print(f"\nProfessional Guide: {professional_path}")
+print(f"  - {len(professional_md):,} characters")
+print(f"  - {professional_md.count('###')} sections")
+print(f"  - {professional_md.count('* ')} bullet points")
+
+print("\n" + "="*80)
+print("\nFiles ready for checking exam prep materials against official requirements!")
