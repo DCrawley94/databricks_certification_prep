@@ -33,21 +33,49 @@
 # DBTITLE 1,Solution 1
 # Your solution for exercise 1
 
-ex1 = None
+ex1 = 'B'
 
 # COMMAND ----------
 
 # DBTITLE 1,Exercise 2: Task Dependencies
 # MAGIC %md
 # MAGIC ## Exercise 2: Task Dependencies
-# MAGIC **Question**: Configure Task C to run only after both Task A and Task B complete successfully. Write the JSON configuration.
+# MAGIC **Question**: Complete the job configuration below by adding Task C, which should run only after both Task A and Task B complete successfully. Task C runs a notebook at `/path/to/task_c`.
+# MAGIC
+# MAGIC ```json
+# MAGIC {
+# MAGIC   "name": "multi_task_job",
+# MAGIC   "tasks": [
+# MAGIC     {
+# MAGIC       "task_key": "task_a",
+# MAGIC       "notebook_task": {"notebook_path": "/path/to/task_a"}
+# MAGIC     },
+# MAGIC     {
+# MAGIC       "task_key": "task_b",
+# MAGIC       "notebook_task": {"notebook_path": "/path/to/task_b"}
+# MAGIC     }
+# MAGIC     // ADD: Task C configuration here
+# MAGIC   ]
+# MAGIC }
+# MAGIC ```
+# MAGIC
+# MAGIC Add the complete task object for Task C with proper dependencies.
 
 # COMMAND ----------
 
 # DBTITLE 1,Solution 2
 # Your solution for exercise 2
 
-ex2 = None
+ex2 = {
+    "task_key": "task_c",
+    "depends_on": [
+        {"task_key": "task_a"},
+        {"task_key": "task_b"}
+    ],
+    "notebook_task": {
+        "notebook_path": "/path/to/notebook"
+    }
+}
 
 # COMMAND ----------
 
@@ -61,7 +89,7 @@ ex2 = None
 # DBTITLE 1,Solution 3
 # Your solution for exercise 3
 
-ex3 = None
+ex3 = 'job cluster'
 
 # COMMAND ----------
 
@@ -77,99 +105,372 @@ ex3 = None
 
 # DBTITLE 1,Solution 4
 # Your solution for exercise 4
+# <seconds> <minutes> <hours> <day-of-month> <month> <day-of-week> <year>
 
-ex4a = None  # Every Monday at 9:00 AM
-ex4b = None  # Every 6 hours
-ex4c = None  # 15th of month at 3:30 PM
+ex4a = "0 0 9 ? * MON *"  # Every Monday at 9:00 AM
+ex4b = "0 0 */6 * * * *"  # Every 6 hours
+ex4c = "0 30 15 15 * ? *"  # 15th of month at 3:30 PM
 
 # COMMAND ----------
 
 # DBTITLE 1,Exercise 5: Retry Configuration
 # MAGIC %md
 # MAGIC ## Exercise 5: Retry Configuration
-# MAGIC **Question**: Configure a job to retry up to 3 times on failure with a 1-hour timeout. Write the JSON configuration.
+# MAGIC **Question**: You have a job that occasionally fails due to transient network issues. Complete the job configuration below to add retry logic: retry up to 3 times on failure with a 1-hour timeout.
+# MAGIC
+# MAGIC ```json
+# MAGIC {
+# MAGIC   "name": "daily_etl",
+# MAGIC   "tasks": [
+# MAGIC     {"task_key": "ingest", "notebook_task": {...}},
+# MAGIC     {"task_key": "transform", "notebook_task": {...}}
+# MAGIC   ]
+# MAGIC   // ADD: Retry and timeout configuration here
+# MAGIC }
+# MAGIC ```
+# MAGIC
+# MAGIC Add the necessary keys and values for retry configuration.
 
 # COMMAND ----------
 
 # DBTITLE 1,Solution 5
 # Your solution for exercise 5
 
-ex5 = None
+ex5 = {
+    "tasks": [
+        {"task_key": "source_a"},
+        {"task_key": "source_b"},
+        {
+            "task_key": "join",
+            "depends_on": [
+                {"task_key": "source_a"},
+                {"task_key": "source_b"}
+            ]
+        }
+    ]
+    ,"max_retries": 3
+    ,"retry_on_timeout": True
+    ,"timeout_seconds": 3600
+}
 
 # COMMAND ----------
 
 # DBTITLE 1,Exercise 6: Email Notifications
 # MAGIC %md
 # MAGIC ## Exercise 6: Email Notifications
-# MAGIC **Question**: Configure email notifications to send to `data-team@example.com` on job failure, and to `manager@example.com` on success. Write the JSON.
+# MAGIC **Question**: Add email notification configuration to send alerts to `data-team@example.com` on job failure and `manager@example.com` on success.
+# MAGIC
+# MAGIC ```json
+# MAGIC {
+# MAGIC   "name": "daily_etl",
+# MAGIC   "tasks": [...],
+# MAGIC   "max_retries": 3
+# MAGIC   // ADD: Email notification configuration here
+# MAGIC }
+# MAGIC ```
+# MAGIC
+# MAGIC Add the necessary keys and values for email notifications.
 
 # COMMAND ----------
 
 # DBTITLE 1,Solution 6
 # Your solution for exercise 6
 
-ex6 = None
+ex6 = {
+  "name": "daily_etl",
+  "tasks": [],
+  "max_retries": 3,
+  "timeout_seconds": 3600,
+  "email_notifications": {
+    "on_success": ["manager@example.com"],
+    "on_failure": ["data-team@example.com"]
+  }
+}
 
 # COMMAND ----------
 
 # DBTITLE 1,Exercise 7: File Arrival Trigger
 # MAGIC %md
 # MAGIC ## Exercise 7: File Arrival Trigger
-# MAGIC **Question**: Configure a job to trigger when new files land in `s3://my-bucket/incoming/`, with a minimum of 5 minutes between triggers.
+# MAGIC **Question**: Configure this job to trigger automatically when new files arrive in `s3://my-bucket/incoming/`, with a minimum of 5 minutes between triggers.
+# MAGIC
+# MAGIC ```json
+# MAGIC {
+# MAGIC   "name": "file_processor",
+# MAGIC   "tasks": [...]
+# MAGIC   // ADD: Trigger configuration here
+# MAGIC }
+# MAGIC ```
+# MAGIC
+# MAGIC Add the necessary trigger configuration with file_arrival settings.
 
 # COMMAND ----------
 
 # DBTITLE 1,Solution 7
 # Your solution for exercise 7
 
-ex7 = None
+ex7 = {
+  "name": "file_processor",
+  "tasks": [],
+  "trigger": {
+    "file_arrival": {
+      "url": "s3://my-bucket/incoming/",
+      "min_time_between_triggers_seconds": 300
+    }
+  }
+}
 
 # COMMAND ----------
 
 # DBTITLE 1,Exercise 8: Table Update Trigger
 # MAGIC %md
 # MAGIC ## Exercise 8: Table Update Trigger
-# MAGIC **Question**: Configure a job to trigger when `catalog.schema.source_table` is updated, waiting 2 minutes after the last change.
+# MAGIC **Question**: Configure this job to trigger when `catalog.schema.source_table` is updated, waiting 2 minutes (120 seconds) after the last change.
+# MAGIC
+# MAGIC ```json
+# MAGIC {
+# MAGIC   "name": "downstream_processor",
+# MAGIC   "tasks": [...]
+# MAGIC   // ADD: Trigger configuration here
+# MAGIC }
+# MAGIC ```
+# MAGIC
+# MAGIC Add the necessary trigger configuration with table_update settings.
 
 # COMMAND ----------
 
 # DBTITLE 1,Solution 8
 # Your solution for exercise 8
 
-ex8 = None
+ex8 = {
+  "name": "downstream_processor",
+  "tasks": [],
+  "trigger": {
+    "table_update": {
+      "table_names": ["catalog.schema.source_table"],
+      "wait_after_last_change_seconds": 120
+    }
+  }
+}
 
 # COMMAND ----------
 
 # DBTITLE 1,Exercise 9: Multi-Task Job Design
 # MAGIC %md
 # MAGIC ## Exercise 9: Multi-Task Job Design
-# MAGIC **Question**: Design a job with the following requirements:
-# MAGIC - Task 1: Ingest data (notebook)
-# MAGIC - Task 2 & 3: Transform data in parallel (both depend on Task 1)
-# MAGIC - Task 4: Aggregate results (depends on Tasks 2 & 3)
+# MAGIC **Question**: Complete the job configuration below to implement this workflow:
+# MAGIC - Task 1 (`ingest`): Ingest data (notebook)
+# MAGIC - Task 2 (`transform_a`) & Task 3 (`transform_b`): Transform data in parallel (both depend on Task 1)
+# MAGIC - Task 4 (`aggregate`): Aggregate results (depends on Tasks 2 & 3)
 # MAGIC
-# MAGIC Draw the DAG and write the task configuration.
+# MAGIC ```json
+# MAGIC {
+# MAGIC   "name": "parallel_etl",
+# MAGIC   "tasks": [
+# MAGIC     {
+# MAGIC       "task_key": "ingest",
+# MAGIC       "notebook_task": {"notebook_path": "/path/to/ingest"}
+# MAGIC     }
+# MAGIC     // ADD: Define transform_a, transform_b, and aggregate tasks with proper dependencies
+# MAGIC   ]
+# MAGIC }
+# MAGIC ```
+# MAGIC
+# MAGIC Add the three remaining task definitions with their dependency configurations.
 
 # COMMAND ----------
 
 # DBTITLE 1,Solution 9
 # Your solution for exercise 9
 
-ex9 = None
+ex9 = {
+  "name": "parallel_etl",
+  "tasks": [
+    {
+      "task_key": "ingest",
+      "notebook_task": {"notebook_path": "/path/to/ingest"}
+    },
+    {
+      "task_key": "transform_a",
+      "notebook_task": {"notebook_path": "/path/to/transform_a"},
+      "depends_on": [
+        {"task_key": "ingest"}
+      ]
+    },
+    {
+      "task_key": "transform_b",
+      "notebook_task": {"notebook_path": "/path/to/transform_b"},
+      "depends_on": [
+        {"task_key": "ingest"}
+      ]
+    },
+    {
+      "task_key": "aggregate",
+      "notebook_task": {"notebook_path": "/path/to/aggregate"},
+      "depends_on": [
+        {"task_key": "transform_a"},
+        {"task_key": "transform_b"}
+      ]
+    }
+  ]
+}
 
 # COMMAND ----------
 
 # DBTITLE 1,Exercise 10: Job Parameters
 # MAGIC %md
 # MAGIC ## Exercise 10: Job Parameters
-# MAGIC **Question**: Your notebook expects parameters `start_date` and `end_date`. How do you pass these from a job task? Write the configuration.
+# MAGIC **Question**: Your notebook expects parameters `start_date` and `end_date`. Complete the task configuration below to pass these parameters with values `2024-01-01` and `2024-01-31`.
+# MAGIC
+# MAGIC ```json
+# MAGIC {
+# MAGIC   "tasks": [
+# MAGIC     {
+# MAGIC       "task_key": "process_data",
+# MAGIC       "notebook_task": {
+# MAGIC         "notebook_path": "/path/to/notebook"
+# MAGIC         // ADD: Parameter configuration here
+# MAGIC       }
+# MAGIC     }
+# MAGIC   ]
+# MAGIC }
+# MAGIC ```
+# MAGIC
+# MAGIC Add the necessary configuration to pass the two date parameters to the notebook.
 
 # COMMAND ----------
 
 # DBTITLE 1,Solution 10
 # Your solution for exercise 10
 
-ex10 = None
+ex10 = {
+  "tasks": [
+    {
+      "task_key": "process_data",
+      "notebook_task": {
+        "notebook_path": "/path/to/notebook",
+        "base_parameters": {"start_date": "2024-01-01", "end_date": "2024-01-31"}
+      }
+    }
+  ]
+}
+
+# COMMAND ----------
+
+# DBTITLE 1,Applied Exercise: Create a Job in the UI
+# MAGIC %md
+# MAGIC ## Applied Exercise: Create a Multi-Task Job in the UI
+# MAGIC
+# MAGIC **Objective**: Build hands-on experience with the Databricks Jobs interface by creating an actual job.
+# MAGIC
+# MAGIC ### Requirements
+# MAGIC
+# MAGIC Create a job named **exactly**: `cert_prep_topic5_etl_pipeline`
+# MAGIC
+# MAGIC **Job Configuration**:
+# MAGIC - Name: `cert_prep_topic5_etl_pipeline` (exact match required for verification)
+# MAGIC - Schedule: Daily at 2:00 AM in your timezone
+# MAGIC - Max concurrent runs: 1
+# MAGIC - Timeout: 1 hour (3600 seconds)
+# MAGIC - Email notification on failure to your email address
+# MAGIC
+# MAGIC **Task 1 - ingest_data**:
+# MAGIC - Task key: `ingest_data`
+# MAGIC - Type: Notebook task
+# MAGIC - Notebook: Create a new notebook called `job_test_ingest` with this code:
+# MAGIC   ```python
+# MAGIC   print("Ingesting data...")
+# MAGIC   record_count = 100
+# MAGIC   dbutils.jobs.taskValues.set(key="record_count", value=record_count)
+# MAGIC   print(f"Ingested {record_count} records")
+# MAGIC   ```
+# MAGIC - Compute: **Serverless** (recommended - fastest startup, auto-scaling, modern best practice)
+# MAGIC   - Alternative: New job cluster (single node, smallest runtime) if your workspace doesn't have serverless enabled
+# MAGIC
+# MAGIC **Task 2 - transform_data** (depends on Task 1):
+# MAGIC - Task key: `transform_data`
+# MAGIC - Type: Notebook task
+# MAGIC - Notebook: Create a new notebook called `job_test_transform` with this code:
+# MAGIC   ```python
+# MAGIC   # Get value from upstream task
+# MAGIC   record_count = dbutils.jobs.taskValues.get(taskKey="ingest_data", key="record_count", default=0)
+# MAGIC   print(f"Transforming {record_count} records...")
+# MAGIC   transformed_count = record_count * 2
+# MAGIC   dbutils.jobs.taskValues.set(key="transformed_count", value=transformed_count)
+# MAGIC   print(f"Transformed to {transformed_count} records")
+# MAGIC   ```
+# MAGIC - Compute: Same as Task 1 (serverless or job cluster)
+# MAGIC - Depends on: `ingest_data`
+# MAGIC
+# MAGIC **Task 3 - validate** (depends on Task 2):
+# MAGIC - Task key: `validate`
+# MAGIC - Type: Notebook task
+# MAGIC - Notebook: Create a new notebook called `job_test_validate` with this code:
+# MAGIC   ```python
+# MAGIC   transformed_count = dbutils.jobs.taskValues.get(taskKey="transform_data", key="transformed_count", default=0)
+# MAGIC   print(f"Validating {transformed_count} records...")
+# MAGIC   if transformed_count > 0:
+# MAGIC       print("✓ Validation passed")
+# MAGIC   else:
+# MAGIC       raise Exception("Validation failed: No records to validate")
+# MAGIC   ```
+# MAGIC - Compute: Same as Task 1 (serverless or job cluster)
+# MAGIC - Depends on: `transform_data`
+# MAGIC
+# MAGIC ### Deliverables
+# MAGIC
+# MAGIC 1. **Run the job once** - Start a manual run and let it complete
+# MAGIC 2. **Mark completion below** - Set `ex10_applied_complete = True` after creating and running the job
+# MAGIC 3. **Verification** - The assistant can check for the job using the exact name
+# MAGIC
+# MAGIC ### Learning Outcomes
+# MAGIC
+# MAGIC * Navigate Jobs UI and create job from scratch
+# MAGIC * Configure task dependencies and visualize DAG
+# MAGIC * Pass values between tasks using `dbutils.jobs.taskValues`
+# MAGIC * Configure job-level settings (schedule, retries, notifications)
+# MAGIC * Monitor job execution and view task results
+# MAGIC * Understand serverless compute vs job cluster tradeoffs
+# MAGIC
+# MAGIC ### Compute Selection: Serverless vs Job Clusters
+# MAGIC
+# MAGIC **Serverless (Recommended)**:
+# MAGIC - Fastest startup time (no cluster provisioning wait)
+# MAGIC - Automatic scaling based on workload
+# MAGIC - Pay only for actual execution time
+# MAGIC - No cluster management overhead
+# MAGIC - Modern best practice for production jobs
+# MAGIC - **Required on free/Community Edition workspaces**
+# MAGIC
+# MAGIC **Job Clusters (Alternative)**:
+# MAGIC - Cost-effective for scheduled jobs (vs always-on all-purpose clusters)
+# MAGIC - More control over cluster configuration
+# MAGIC - Useful when specific driver/worker sizes needed
+# MAGIC - Auto-terminates after job completes
+# MAGIC - Traditional approach, still widely used
+# MAGIC
+# MAGIC **For the exam**: Understand BOTH patterns. Questions may ask when to use job clusters vs all-purpose clusters (job clusters for scheduled automation). Real-world production increasingly uses serverless.
+# MAGIC
+# MAGIC ### UI Navigation Hints
+# MAGIC
+# MAGIC 1. **Create Job**: Workflows → Jobs → Create Job
+# MAGIC 2. **Add Tasks**: Click "Add task" for each task, configure dependencies in the "Depends on" dropdown
+# MAGIC 3. **View DAG**: The graph visualization appears automatically as you add dependencies
+# MAGIC 4. **Configure Job Settings**: Use the "Job details" panel on the right side
+# MAGIC 5. **Schedule**: Click "Add trigger" → "Scheduled" → Configure cron expression
+# MAGIC 6. **Run Job**: Click "Run now" button in top right
+# MAGIC 7. **Monitor**: View the run details page to see task execution and outputs
+
+# COMMAND ----------
+
+# DBTITLE 1,Applied Exercise Solution/Status
+# Applied Exercise: Create Job in UI
+# Mark this as True after you've created and run the job
+
+ex10_applied_complete = True
+
+# Job name for verification: cert_prep_topic5_etl_pipeline
+# The assistant can verify this job exists using the Jobs API
 
 # COMMAND ----------
 

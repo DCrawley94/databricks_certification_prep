@@ -101,7 +101,7 @@ def setup():
 # MAGIC - Uses checkpoint location `/Volumes/workspace/default/streaming_data/checkpoints/stream1`
 # MAGIC - Runs once (one-time batch processing)
 # MAGIC
-# MAGIC **Note**: Serverless requires an explicit trigger - continuous streaming is not supported.
+# MAGIC **Exam Note**: All streaming write operations require an explicit trigger (once, availableNow, or processingTime).
 # MAGIC
 # MAGIC ## Exercise 4: Complete Write Operation with Available Now
 # MAGIC Using `ex2` as the source (same reader, different stream), write a complete streaming query that:
@@ -112,7 +112,7 @@ def setup():
 # MAGIC ## Exercise 5: Processing Time Syntax (Exam Knowledge)
 # MAGIC Write the syntax for a trigger that processes data every 5 minutes in continuous mode.
 # MAGIC
-# MAGIC **Note**: This will NOT run on serverless (serverless only supports once/availableNow). This is exam syntax knowledge for classic compute.
+# MAGIC **Exam Note**: You need to recognize this trigger syntax for the exam. Different compute types support different triggers (once/availableNow for serverless, processingTime for classic clusters).
 
 # COMMAND ----------
 
@@ -439,9 +439,15 @@ reader_2 = (
 
 # DBTITLE 1,Exercise 14: Checkpoint and Schema Location Requirements
 # MAGIC %md
-# MAGIC ## Exercise 14: Checkpoint and Schema Location Requirements
-# MAGIC Why must checkpoint and schema locations use Unity Catalog Volumes (not DBFS paths like `/mnt/`) on serverless compute?
-# MAGIC Create a reader that follows serverless best practices.
+# MAGIC ## Exercise 14: Unity Catalog Volume Paths Best Practice
+# MAGIC Why should checkpoint and schema locations use Unity Catalog Volume paths (e.g., `/Volumes/catalog/schema/volume/`) instead of legacy DBFS paths (e.g., `/mnt/` or `/dbfs/`)?
+# MAGIC
+# MAGIC Create an Auto Loader reader that follows Unity Catalog governance best practices:
+# MAGIC - Read JSON from `/Volumes/workspace/default/streaming_data/json_source`
+# MAGIC - Schema location in a UC Volume
+# MAGIC - Include checkpoint location in a UC Volume
+# MAGIC - Write to Delta table `workspace.default.uc_volumes_ex14`
+# MAGIC - Trigger: once
 
 # COMMAND ----------
 
@@ -449,7 +455,18 @@ reader_2 = (
 # Your solution for exercise 14
 # Write your code here
 
-ex14 = None
+ex14 = (
+    spark.readStream
+    .format("cloudFiles")
+    .option("cloudFiles.format", "json")
+    .option("cloudFiles.schemaLocation", "/Volumes/workspace/default/streaming_data/schemas/ex14")
+    .load("/Volumes/workspace/default/streaming_data/json_source")
+    .writeStream
+    .format("delta")
+    .option("checkpointLocation", "/Volumes/workspace/default/streaming_data/checkpoints/ex14")
+    .trigger(once=True)
+    .toTable("workspace.default.uc_volumes_ex14")
+)
 
 # COMMAND ----------
 
@@ -473,14 +490,30 @@ ex14 = None
 # Your solution for exercise 15
 # Write your code here
 
-ex15 = None
+(
+    spark.readStream
+    .format("cloudFiles")
+    .option("cloudFiles.format", "csv")
+    .option("cloudFiles.schemaLocation", "/Volumes/workspace/default/streaming_data/schemas/ex15")
+    .option("cloudFiles.schemaEvolutionMode", "addNewColumns")
+    .option("cloudFiles.inferColumnTypes", "true")
+    .option("cloudFiles.rescuedDataColumn", "_rescued_data")
+    .load("/Volumes/workspace/default/streaming_data/csv_source")
+    .filter(col("id").isNotNull())
+    .withColumn("ingestion_date", current_timestamp())
+    .writeStream
+    .format("delta")
+    .option("checkpointLocation", "/Volumes/workspace/default/streaming_data/ex15/checkpoint")
+    .trigger(availableNow=True)
+    .toTable("workspace.default.ex15")
+)
 
 # COMMAND ----------
 
 # DBTITLE 1,Multiple Choice Questions
-# MCQ 1: Default Auto Loader file format notification?
-# A) queue B) directory C) both D) none
-mcq1 = None
+# MCQ 1: Default Auto Loader notification mode?
+# A) file notification B) directory listing C) both D) none
+mcq1 = 'B'
 
 # MCQ 2: What does checkpoint store?
 # A) Data B) Offsets C) Schema D) All
@@ -494,8 +527,8 @@ mcq3 = 'B'
 # A) Dedupe B) Late data C) Ordering D) Filtering
 mcq4 = 'B'
 
-# MCQ 5: availableNow vs Once?
-# A) Same B) availableNow processes all available C) Once faster D) No difference
+# MCQ 5: Key difference between availableNow and once triggers?
+# A) Same behavior B) availableNow uses micro-batches, once uses single batch C) once is faster D) availableNow is for real-time only
 mcq5 = 'B'
 
 # COMMAND ----------
@@ -511,7 +544,16 @@ mcq5 = 'B'
 # MAGIC
 # MAGIC **Scenario C**: Ingest data from Salesforce into Delta table on a schedule. No custom transformation logic needed.
 # MAGIC
-# MAGIC For Scenario B, write the complete Auto Loader code.
+# MAGIC ### Scenario B Implementation
+# MAGIC Write the complete Auto Loader code with these specifications:
+# MAGIC - Read JSON from `/Volumes/workspace/default/streaming_data/json_source`
+# MAGIC - Schema location: `/Volumes/workspace/default/streaming_data/schemas/challenge1b`
+# MAGIC - Checkpoint location: `/Volumes/workspace/default/streaming_data/checkpoints/challenge1b`
+# MAGIC - Write to Delta table `workspace.default.challenge1b_realtime`
+# MAGIC - Continuous streaming (processingTime trigger every 10 seconds)
+# MAGIC - Enable schema evolution to handle new fields
+# MAGIC
+# MAGIC **Exam Note**: The scenario describes continuous streaming with `processingTime="10 seconds"` trigger. This is important exam syntax to recognize. However, serverless compute only supports `once` and `availableNow` triggers. For serverless execution, you would use `availableNow` instead, but you should know the `processingTime` syntax for the exam.
 
 # COMMAND ----------
 
@@ -519,11 +561,30 @@ mcq5 = 'B'
 # Your solution for Challenge 1
 # Write your code here
 
-challenge1_a = None
+challenge1_a = "Possiby copy into, if it's just regukar batch processes then copy into would maybe be best here"
 
-challenge1_b = None
+challenge1_b = "Autoloader as it is designed to handle large streaming workloads and with schema evolution it can easily deal with additional fields"
 
-challenge1_c = None
+challenge1_c = "Lakeflow connect - salesforce is a popualr sass tool and there are managed connectors for that kind of thing. Plus no custom transformation so no needs for complex python logic"
+
+
+# Scenario B implementation:
+
+(
+    spark.readStream
+    .format("cloudFiles")
+    .option("cloudFiles.format", "json")
+    .option("cloudFiles.schemaLocation", "/Volumes/workspace/default/streaming_data/schemas/challenge1b")
+    .option("cloudFiles.schemaEvolutionMode", "addNewColumns")
+    .option("cloudFiles.inferColumnTypes", "true")
+    .option("cloudFiles.rescuedDataColumn", "_rescued_data")
+    .load("/Volumes/workspace/default/streaming_data/json_source")
+    .writeStream
+    .format("delta")
+    .option("checkpointLocation", "/Volumes/workspace/default/streaming_data/checkpoints/challenge1b")
+    .trigger(processingTime="10 seconds")
+    .toTable("workspace.default.challenge1b_realtime")
+)
 
 # COMMAND ----------
 

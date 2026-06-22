@@ -323,6 +323,204 @@
 
 # COMMAND ----------
 
+# DBTITLE 1,Applied Exercise Solution & Verification
+# MAGIC %md
+# MAGIC ## Applied Exercise: Create Job in UI - Solution Guide
+# MAGIC
+# MAGIC ### Expected Job Configuration
+# MAGIC
+# MAGIC **Job Name**: `cert_prep_topic5_etl_pipeline` (exact match)
+# MAGIC
+# MAGIC **Complete JSON representation** (what your job should look like when exported):
+# MAGIC
+# MAGIC ```json
+# MAGIC {
+# MAGIC   "name": "cert_prep_topic5_etl_pipeline",
+# MAGIC   "timeout_seconds": 3600,
+# MAGIC   "max_concurrent_runs": 1,
+# MAGIC   "email_notifications": {
+# MAGIC     "on_failure": ["your-email@example.com"]
+# MAGIC   },
+# MAGIC   "schedule": {
+# MAGIC     "quartz_cron_expression": "0 0 2 * * ? *",
+# MAGIC     "timezone_id": "America/Los_Angeles",
+# MAGIC     "pause_status": "PAUSED"
+# MAGIC   },
+# MAGIC   "tasks": [
+# MAGIC     {
+# MAGIC       "task_key": "ingest_data",
+# MAGIC       "notebook_task": {
+# MAGIC         "notebook_path": "/Users/username/job_test_ingest"
+# MAGIC       },
+# MAGIC       "new_cluster": {
+# MAGIC         "spark_version": "13.3.x-scala2.12",
+# MAGIC         "node_type_id": "i3.xlarge",
+# MAGIC         "num_workers": 0
+# MAGIC       }
+# MAGIC     },
+# MAGIC     {
+# MAGIC       "task_key": "transform_data",
+# MAGIC       "depends_on": [{"task_key": "ingest_data"}],
+# MAGIC       "notebook_task": {
+# MAGIC         "notebook_path": "/Users/username/job_test_transform"
+# MAGIC       },
+# MAGIC       "new_cluster": {
+# MAGIC         "spark_version": "13.3.x-scala2.12",
+# MAGIC         "node_type_id": "i3.xlarge",
+# MAGIC         "num_workers": 0
+# MAGIC       }
+# MAGIC     },
+# MAGIC     {
+# MAGIC       "task_key": "validate",
+# MAGIC       "depends_on": [{"task_key": "transform_data"}],
+# MAGIC       "notebook_task": {
+# MAGIC         "notebook_path": "/Users/username/job_test_validate"
+# MAGIC       },
+# MAGIC       "new_cluster": {
+# MAGIC         "spark_version": "13.3.x-scala2.12",
+# MAGIC         "node_type_id": "i3.xlarge",
+# MAGIC         "num_workers": 0
+# MAGIC       }
+# MAGIC     }
+# MAGIC   ]
+# MAGIC }
+# MAGIC ```
+# MAGIC
+# MAGIC ### Learning Outcomes Verified
+# MAGIC
+# MAGIC **1. Task Dependencies**
+# MAGIC * The DAG shows: `ingest_data` → `transform_data` → `validate`
+# MAGIC * Linear pipeline with explicit `depends_on` configuration
+# MAGIC
+# MAGIC **2. Task Value Passing**
+# MAGIC * Task 1 sets: `dbutils.jobs.taskValues.set(key="record_count", value=100)`
+# MAGIC * Task 2 gets: `dbutils.jobs.taskValues.get(taskKey="ingest_data", key="record_count")`
+# MAGIC * Task 3 gets: `dbutils.jobs.taskValues.get(taskKey="transform_data", key="transformed_count")`
+# MAGIC
+# MAGIC **3. Job-Level Configuration**
+# MAGIC * Schedule: Quartz cron `0 0 2 * * ? *` (daily at 2 AM)
+# MAGIC * Timeout: 3600 seconds (1 hour)
+# MAGIC * Max concurrent runs: 1
+# MAGIC * Email notifications: On failure
+# MAGIC
+# MAGIC **4. Cluster Configuration**
+# MAGIC * Job cluster (auto-terminates after job)
+# MAGIC * Single-node (`num_workers: 0`)
+# MAGIC * Shared cluster across all tasks
+# MAGIC
+# MAGIC ### Key UI → JSON Mapping
+# MAGIC
+# MAGIC When you configure in the UI, it generates the JSON above:
+# MAGIC
+# MAGIC | UI Element | JSON Path | Value |
+# MAGIC |------------|-----------|-------|
+# MAGIC | Job name field | `.name` | `cert_prep_topic5_etl_pipeline` |
+# MAGIC | "Add trigger" → Scheduled | `.schedule.quartz_cron_expression` | `0 0 2 * * ? *` |
+# MAGIC | "Max concurrent runs" | `.max_concurrent_runs` | `1` |
+# MAGIC | "Timeout" | `.timeout_seconds` | `3600` |
+# MAGIC | "Email notifications" | `.email_notifications.on_failure` | Array of emails |
+# MAGIC | "Add task" → Task key | `.tasks[].task_key` | `ingest_data` |
+# MAGIC | "Depends on" dropdown | `.tasks[].depends_on` | Array of `{task_key: ...}` |
+# MAGIC | "Notebook" path | `.tasks[].notebook_task.notebook_path` | Path string |
+# MAGIC | "Cluster" → New job cluster | `.tasks[].new_cluster` | Cluster spec |
+# MAGIC
+# MAGIC ### Common Mistakes
+# MAGIC
+# MAGIC **❌ Wrong**: Not setting exact job name
+# MAGIC * Creates job named "New Job" or "ETL Pipeline"
+# MAGIC * Verification will fail
+# MAGIC
+# MAGIC **❌ Wrong**: Using all-purpose cluster
+# MAGIC * Costs more (doesn't auto-terminate)
+# MAGIC * Not following best practices
+# MAGIC
+# MAGIC **❌ Wrong**: Forgetting to set dependencies
+# MAGIC * Tasks run in parallel or random order
+# MAGIC * `transform_data` might run before `ingest_data`
+# MAGIC
+# MAGIC **❌ Wrong**: Not using `dbutils.jobs.taskValues`
+# MAGIC * Each task creates its own `record_count` variable
+# MAGIC * Values don't flow between tasks
+# MAGIC
+# MAGIC **✓ Correct**: Follow the exercise specification exactly
+# MAGIC * Exact job name for verification
+# MAGIC * Job cluster configuration
+# MAGIC * Explicit dependencies
+# MAGIC * Task value passing pattern
+# MAGIC
+# MAGIC ### Verification Instructions
+# MAGIC
+# MAGIC After creating the job, verify it by:
+# MAGIC
+# MAGIC 1. **Check job name**: Workflows → Jobs → Find `cert_prep_topic5_etl_pipeline`
+# MAGIC 2. **Check DAG**: Should show linear pipeline: ingest → transform → validate
+# MAGIC 3. **Run once**: Click "Run now" and monitor execution
+# MAGIC 4. **Check task outputs**: Each task should print expected messages
+# MAGIC 5. **Export JSON**: Job details → "..." menu → "Export as JSON"
+# MAGIC
+# MAGIC ### Assistant Verification
+# MAGIC
+# MAGIC The assistant can verify your job using the Databricks CLI:
+# MAGIC
+# MAGIC ```python
+# MAGIC # Verification code (assistant can run this)
+# MAGIC import json
+# MAGIC result = spark.sql("""
+# MAGIC   SELECT * FROM system.jobs
+# MAGIC   WHERE job_name = 'cert_prep_topic5_etl_pipeline'
+# MAGIC """).collect()
+# MAGIC
+# MAGIC if len(result) > 0:
+# MAGIC     print("✓ Job found!")
+# MAGIC     print(f"Job ID: {result[0].job_id}")
+# MAGIC     print(f"Owner: {result[0].owner}")
+# MAGIC else:
+# MAGIC     print("✗ Job not found. Make sure the job name is exactly: cert_prep_topic5_etl_pipeline")
+# MAGIC ```
+# MAGIC
+# MAGIC Or using Databricks CLI:
+# MAGIC ```bash
+# MAGIC databricks jobs list --output JSON | grep -i "cert_prep_topic5_etl_pipeline"
+# MAGIC ```
+
+# COMMAND ----------
+
+# DBTITLE 1,Verification Helper Function
+# Verification helper for Applied Exercise
+
+def verify_job_exists(job_name="cert_prep_topic5_etl_pipeline"):
+    """
+    Verify that the student created the job with correct name.
+    
+    Returns:
+        Tuple of (bool, str): (success, message)
+    """
+    try:
+        # List all jobs and find matching name
+        jobs_df = spark.sql("SELECT job_id, job_name, owner FROM system.jobs")
+        matching_jobs = jobs_df.filter(f"job_name = '{job_name}'").collect()
+        
+        if len(matching_jobs) == 0:
+            return False, f"Job '{job_name}' not found. Please create the job with this exact name."
+        
+        job = matching_jobs[0]
+        return True, f"✓ Job found! Job ID: {job.job_id}, Owner: {job.owner}"
+        
+    except Exception as e:
+        return False, f"Error checking job: {str(e)}"
+
+# Run verification
+success, message = verify_job_exists()
+print(message)
+
+if success:
+    print("\nNext steps:")
+    print("1. Run the job once and verify all tasks complete successfully")
+    print("2. Check that task values are passed correctly between tasks")
+    print("3. Export the job as JSON and compare with the solution")
+
+# COMMAND ----------
+
 # DBTITLE 1,Solutions 11-15: Automation Bundles
 # MAGIC %md
 # MAGIC ## Solutions 11-15: Automation Bundles (DABs)

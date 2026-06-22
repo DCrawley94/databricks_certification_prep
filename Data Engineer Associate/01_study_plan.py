@@ -520,14 +520,14 @@
 # MAGIC
 # MAGIC ### Overall Progress
 # MAGIC **Target Study Time**: 45-55 hours over 6 weeks
-# MAGIC **Actual Study Time**: 11 hours (Week 1-4)
-# MAGIC **Topics Completed**: 1 / 9 (Topic 3 complete; Topics 1-2, 4 partial)
-# MAGIC **Practice Exercises**: 60 / 135 (15 per topic)
-# MAGIC **MCQs Correct**: 15 / 45 (5 per topic)
+# MAGIC **Actual Study Time**: 13.5 hours (Week 1-4)
+# MAGIC **Topics Completed**: 2 / 9 (Topics 3-4 complete; Topics 1-2 partial)
+# MAGIC **Practice Exercises**: 75 / 135 (15 per topic)
+# MAGIC **MCQs Correct**: 20 / 45 (5 per topic)
 # MAGIC **Challenge Scenarios**: 0 / 18 (2 per topic)
 # MAGIC **ETL Tasks**: 0 / 18 (2 per topic)
 # MAGIC
-# MAGIC **Last Updated**: June 17, 2026
+# MAGIC **Last Updated**: June 19, 2026
 # MAGIC
 # MAGIC ### Weekly Checklist
 # MAGIC
@@ -547,9 +547,10 @@
 # MAGIC - [x] Extra practice: Conditional MERGE scenarios completed
 # MAGIC
 # MAGIC #### Week 4: Streaming
-# MAGIC - [~] Topic 4: Incremental Data Processing (4.5 hrs / 8-10 hrs target) - EXERCISES 1-13 COMPLETE
+# MAGIC - [x] Topic 4: Incremental Data Processing (7 hrs / 8-10 hrs target) - COMPLETE
 # MAGIC - [x] **Milestone**: Streaming triggers, Auto Loader, serverless constraints understood
-# MAGIC - [ ] Complete remaining exercises (14-15), ETL tasks, challenges
+# MAGIC - [x] All 15 exercises complete, 5 MCQs complete
+# MAGIC - [ ] ETL tasks and challenges pending
 # MAGIC
 # MAGIC #### Week 5: Pipelines & Governance
 # MAGIC - [ ] Topic 5: Production Pipelines (4-5 hrs)
@@ -655,6 +656,30 @@
 # MAGIC Each study session is documented below in reverse chronological order (newest first).
 # MAGIC
 # MAGIC **Format**: Date - Topic - Duration - Key activities and outcomes
+# MAGIC
+# MAGIC ---
+
+# COMMAND ----------
+
+# DBTITLE 1,2026-06-19: Topic 4 Complete - Incremental Data Processing
+# MAGIC %md
+# MAGIC ### June 19, 2026 - Topic 4: Incremental Data Processing (Complete)
+# MAGIC **Duration**: 2.5 hours  
+# MAGIC **Notebook**: `04_Incremental_Data_Processing/practice_tasks.py`
+# MAGIC
+# MAGIC **Completed**:
+# MAGIC - Exercises 14-15: UC Volume governance, production-ready pipelines
+# MAGIC - Exercise 14 focused on serverless best practices (checkpoint and schema locations in UC Volumes)
+# MAGIC - Exercise 15 integrated all patterns: column type inference, schema evolution, rescuedDataColumn, filtering, audit columns, availableNow trigger
+# MAGIC - All 5 MCQs completed (100% correct)
+# MAGIC
+# MAGIC **Key Learning Points**:
+# MAGIC - Serverless compute requires UC Volume paths for checkpoints and schema locations (cannot use /mnt/ or /dbfs/)
+# MAGIC - Production-ready Auto Loader patterns: inferColumnTypes + schemaEvolutionMode + rescuedDataColumn
+# MAGIC - availableNow trigger processes all available data in micro-batches (vs once trigger which uses single batch)
+# MAGIC - Checkpoint location stores offsets/progress, not data or schema
+# MAGIC
+# MAGIC **Status**: Topic 4 complete. Ready for Topic 5 (Production Pipelines).
 # MAGIC
 # MAGIC ---
 

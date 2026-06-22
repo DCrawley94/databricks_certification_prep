@@ -255,9 +255,10 @@
 # MAGIC * Event-driven architectures
 # MAGIC
 # MAGIC **Table update**:
-# MAGIC * Multi-stage pipelines
-# MAGIC * Downstream transformations
-# MAGIC * Complex dependencies
+# MAGIC * Cross-team dependencies (different teams own different layers)
+# MAGIC * Multiple independent consumers of one upstream table
+# MAGIC * Unpredictable upstream update timing (manual/external updates)
+# MAGIC * Decoupling producers from consumers (loose coupling)
 # MAGIC
 # MAGIC ### Exam Tips
 # MAGIC
@@ -400,10 +401,10 @@
 # MAGIC
 # MAGIC ### Bundle Modes
 # MAGIC
-# MAGIC | Mode | Purpose | Behavior |
-# MAGIC |------|---------|----------|
-# MAGIC | **development** | Testing, iteration | Isolated user workspace, frequent changes |
-# MAGIC | **production** | Stable deployment | Shared location, controlled changes |
+# MAGIC | Mode | Purpose | Key Differences |
+# MAGIC |------|---------|------------------|
+# MAGIC | **development** | Testing, iteration | Deploys to user workspace, allows auto-updates, isolated per developer |
+# MAGIC | **production** | Stable deployment | Deploys to shared location, requires explicit updates, strict validation |
 # MAGIC
 # MAGIC ### Directory Structure
 # MAGIC
@@ -611,6 +612,10 @@
 # MAGIC **Question**: "What should NOT be committed to Git?"
 # MAGIC * Answer: Data files, secrets, credentials, .env files
 # MAGIC
+# MAGIC **Question**: "What are two ways to run a notebook from Git in a job?"
+# MAGIC * Answer 1: Use Git Folders + workspace path in notebook_task
+# MAGIC * Answer 2: Use `git_source` parameter in task definition (pulls directly from Git)
+# MAGIC
 # MAGIC **Question**: "How to run job from specific Git branch?"
 # MAGIC * Answer: Use `git_source` with `git_branch` parameter in task configuration
 # MAGIC
@@ -657,7 +662,11 @@
 # MAGIC * Scheduled production job → Job cluster
 # MAGIC * Interactive development → All-purpose cluster
 # MAGIC * Ad-hoc notebook testing → All-purpose cluster
-# MAGIC * Automated CI/CD pipeline → Job cluster
+# MAGIC
+# MAGIC **CI/CD and Deployment**:
+# MAGIC * CI/CD orchestration → External platform (GitHub Actions, GitLab CI, Azure DevOps)
+# MAGIC * Production jobs deployed via CI/CD → Job cluster (after deployment)
+# MAGIC * Note: CI/CD pipelines run on external infrastructure and deploy TO Databricks
 # MAGIC
 # MAGIC **Trigger Selection**:
 # MAGIC * Nightly batch at 2 AM → Time-based (cron)
@@ -682,10 +691,7 @@
 # MAGIC **Trap 3**: "Bundles only deploy jobs"
 # MAGIC * False! Bundles deploy jobs, pipelines, notebooks, and more
 # MAGIC
-# MAGIC **Trap 4**: "You can commit directly to main branch"
-# MAGIC * False (usually)! Protected branches require pull requests
-# MAGIC
-# MAGIC **Trap 5**: "Data files should be committed to Git"
+# MAGIC **Trap 4**: "Data files should be committed to Git"
 # MAGIC * False! Use .gitignore for data files and secrets
 # MAGIC
 # MAGIC ### Syntax Quick Reference
